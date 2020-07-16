@@ -4,8 +4,8 @@
         <button @click="run">运行代码</button>
         <textarea v-model="tempValue"></textarea>
     </div>
-    <div class="J__right_show--box" id="showBox">
-
+    <div class="J__right_show--box">
+        <div id="showBox"></div>
     </div>
   </div>
 </template>
@@ -13,34 +13,42 @@
 <script>
 import Vue from 'vue';
 
+import tempValue from './initval';
+
 export default {
   name: 'Home',
   data() {
     return {
-      tempValue: '<template>\n\n\n</template>\n'
+      tempValue: tempValue
     }
   },
   methods: {
     getSource(source, type) {
-      const regex = new RegExp(`<${type}[^>]*`);
+      const regex = new RegExp(`<${type}[^>]*>`);
       let val = source.match(regex);
       if (!val) return '';
       val = val[0];
       return source.slice(
         source.indexOf(val) + val.length,
-        source.lastIndexOf(val)
+        source.lastIndexOf(`</${type}>`)
       )
     },
     run() {
-      const template = this.getSource(this.tempValue, 'template');
-      const script = this.getSource(this.tempValue, 'script');
-      const style = this.getSource(this.tempValue, 'style');
-
-      // const result = Vue.extend({
-      //   template,
-      //   script
-      // });
-      // new result().$mount('#showBox');
+      let template = this.getSource(this.tempValue, 'template');
+      let script = this.getSource(this.tempValue, 'script').replace('export default', 'return');
+      let style = this.getSource(this.tempValue, 'style');
+      let optins = new Function(script)();
+      template = '<div> '+ template +' </div>';
+      optins.template = template;
+      const result = Vue.extend(optins);
+      let el = new result().$mount().$el;
+      this.handleCss(style);
+      document.getElementById('showBox').appendChild(el);
+    },
+    handleCss(style) {
+      let styleEle = document.createElement('style');
+      styleEle.innerHTML = style;
+      document.head.appendChild(styleEle);
     }
   }
 }
